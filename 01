@@ -1,0 +1,86 @@
+-- Qual o comando SQL necessário para realizar as consultas abaixo:
+-- Quais são as disciplinas dos cursos que não são Técnicos com carga horária inferior a 50?
+-- Qual a média salarial dos coordenadores?
+-- Quais são os nomes das 2 disciplinas com maior carga horária sendo ofertadas em outros dias da semana que não seja a terça-feira?
+-- Exibir os nomes das disciplinas e do curso do qual fazem parte, além da quantidade de matriculados, ordenados pela quantidade de matriculados 
+-- Quais cursos que oferecem entre 30 e 50 vagas por semestre e são dos níveis Superior ou de Pós-graduação?
+-- Quais as disciplinas que são ministradas em alguma sala de aula nas segundas-feira?
+-- Quais as salas em que não existem disciplinas alocadas? Exibir a descrição e a capacidade.
+-- Quais as formações (sem repetição) dos coordenadores de curso?
+-- Exibir a descrição da sala e a quantidade de aulas que ocorre nela por turno.
+-- Quais os nomes dos professores que são coordenadores e não estão alocados em alguma disciplina?
+-- Listar os nomes, a carga horária, o dia da semana e o turno em que cada disciplina ocorre, ordenados pelo turno e depois pelo nome da disciplina.
+-- O relatório deve ser exibido com os seguintes títulos: DISCIPLINA, CARGA HORÁRIA, DIA e TURNO.
+
+SELECT * from professor;
+SELECT * from curso;
+SELECT * from sala;
+SELECT * from disciplina;
+
+-- 01
+select disciplina.nome from disciplina
+join curso on cod_curso = codigo
+where nivel != "Técnico" and ch < 50;
+
+
+-- 02
+SELECT avg(DISTINCT professor.salario) as 'Média salarial dos coordenadores' 
+from professor
+join curso on mat_coordenador = matricula
+WHERE mat_coordenador is not null;
+
+-- 03
+SELECT disciplina.nome from disciplina
+WHERE dia_semana != 'terça-feira' 
+ORDER by CH desc
+LIMIT 2;
+
+-- 04
+SELECT disciplina.nome, curso.nome, disciplina.qtde_matriculados
+from disciplina, curso
+WHERE cod_curso in (SELECT codigo from curso)
+ORDER by qtde_matriculados;
+
+-- 05
+SELECT nome from curso
+WHERE vagas_porAno BETWEEN 30 and 50
+and nivel in ('Superior','Pós-graduação');
+
+-- 06
+SELECT disciplina.nome from disciplina
+WHERE num_sala in
+(SELECT numero from sala 
+WHERE descricao like 'Sala de aula%') 
+and dia_semana = 'segunda-feira';
+
+-- 07
+SELECT sala.descricao, sala.capacidade
+from sala WHERE numero not in (
+SELECT num_sala from disciplina WHERE num_sala is not null);
+
+-- 08
+SELECT DISTINCT professor.nome, professor.formação 
+from professor
+join curso on mat_coordenador = matricula;
+
+-- 09
+SELECT sala.descricao, count(disciplina.nome), disciplina.turno
+from sala, disciplina where sala.numero = disciplina.num_sala
+GROUP by sala.descricao, disciplina.turno;
+
+-- 10
+SELECT DISTINCT professor.nome
+from professor
+WHERE professor.matricula in (SELECT mat_coordenador from curso
+where mat_coordenador IS not null)
+and professor.matricula NOT IN (SELECT mat_professor from disciplina 
+WHERE mat_professor is not null);
+
+-- 11
+SELECT nome as 'DISCIPLINA',
+CH as 'CARGA HORÁRIA',
+dia_semana AS 'DIA',
+turno AS 'TURNO'
+from disciplina
+ORDER BY turno, nome;
+
