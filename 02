@@ -1,0 +1,19 @@
+SELECT * from departamento;
+SELECT * from funcionario;
+SELECT * from projeto;
+SELECT * from func_proj;
+
+-- 01 
+SELECT funcionario.nome as 'Funcionário', departamento.nome as 'Departamento'
+from funcionario join departamento
+on cod_depart = codigo;
+
+-- 02
+SELECT departamento.nome as 'Departamento',
+COUNT(funcionario.matricula) as 'Quant. Func.',
+SUM(funcionario.salario) as 'Custo salarial por departamento'
+from funcionario
+left join departamento on cod_depart = codigo
+GROUP by departamento.nome;
+
+-- 03
