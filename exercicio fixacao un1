@@ -1,0 +1,89 @@
+Responder às questões:
+De quanto seria a bonificação de um funcionário que tivesse todas as certificações consideradas na empresa.
+Quais são os nomes e idades dos funcionários que possuem algum certificado Microsoft?
+Quais os níveis das formações que pagam bonus de mais de 220 reais? Não devem aparecer nomes de níveis repetidos.
+Quais os nomes das formações apenas duas pessoas fizeram?
+Quais os nomes e níveis das 4 formações que melhor bonificam o funcionário?
+Exibir um relatório contendo o nome dos funcionários e quantas formações cada um deles tem. O relatório deve exibir inclusive funcionários sem formação.
+Quais os nomes, descrições do cargo e salários dos funcionários que não tem entre 30 e 45 anos ordenados decrescentemente pelo salário e depois alfabeticamente pelo nome?
+Considerando os cargos existentes, exibir a descrição dos cargos, a quantidade de funcionários e o custo com salários em cada cargo? O relatório deve exibir AS colunas com os nomes: 'CARGO', 'QTDE. FUNCIONARIOS', 'GASTO SALARIAL'.
+Qual o nome e salario do cargo que não tem pessoas alocadas nele?
+Relacionar os nomes dos funcionários e das formações que ele já realizou.
+Considerando os cargos da empresa, quais a média dos salários, o maior e o menor salários pagos na empresa? Exibir como 'MÉDIA', 'MAIOR', 'MENOR'
+Quais os funcionários que não tem nenhuma formação específica?
+
+
+SELECT * from cargo;
+SELECT * from funcionario;
+SELECT * from formacao;
+SELECT * from func_form ORDER by mat_func;
+
+-- 01
+select sum(bonus) from formacao;
+
+-- 02
+SELECT DISTINCT funcionario.nome, funcionario.idade
+from funcionario join func_form
+on funcionario.matricula = func_form.mat_func
+JOIN formacao on codigo = cod_form
+WHERE formacao.nivel = 'Certificado Microsoft';
+
+-- 03
+SELECT DISTINCT formacao.nivel from formacao
+WHERE bonus > 220;
+
+-- 04
+SELECT formacao.nome from formacao
+join func_form on formacao.codigo = func_form.cod_form
+join funcionario on func_form.mat_func = funcionario.matricula
+GROUP by formacao.nome
+HAVING COUNT(mat_func) = 2;
+
+-- 05
+SELECT nome, nivel from formacao
+order by bonus DESC 
+LIMIT 4;
+
+-- 06
+SELECT funcionario.nome, count(func_form.mat_func)
+from funcionario left join func_form 
+on funcionario.matricula = func_form.mat_func
+group by funcionario.nome;
+
+-- 07
+SELECT funcionario.nome, cargo.descricao, cargo.salario
+from funcionario join cargo 
+on funcionario.id_cargo = cargo.id
+WHERE funcionario.idade not BETWEEN 30 and 45
+ORDER by cargo.salario desc, funcionario.nome;
+
+-- 08
+SELECT cargo.descricao as 'CARGO',
+count(funcionario.matricula) AS 'QTDE. FUNCIONARIOS',
+sum(cargo.salario) AS 'GASTO SALARIAL'
+from cargo join funcionario
+on cargo.id = funcionario.id_cargo
+GROUP by cargo.descricao;
+
+-- 09
+select cargo.descricao, cargo.salario from cargo
+left join funcionario on cargo.id = funcionario.id_cargo
+where cargo.id not in (SELECT id_cargo from funcionario);
+
+-- 10
+SELECT funcionario.nome, formacao.nome
+from funcionario join func_form
+on funcionario.matricula = func_form.mat_func
+join formacao on formacao.codigo = func_form.cod_form
+GROUP by funcionario.nome, formacao.nome;
+
+-- 11
+select AVG(salario) AS 'MÉDIA', 
+MAX(salario) as 'MAIOR',
+MIN(salario) as 'MENOR'
+from cargo;
+
+-- 12
+SELECT funcionario.nome from funcionario
+left join func_form on funcionario.matricula = func_form.mat_func
+where funcionario.matricula not in (SELECT mat_func from func_form);
