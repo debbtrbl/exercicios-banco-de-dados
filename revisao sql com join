@@ -1,0 +1,69 @@
+
+1. Relacionar os nomes dos funcionários e dos departamentos em que eles estão lotados.
+2. Quantos funcionários estão lotados e qual o custo salarial em cada departamento? Departamento sem funcionário devem aparecer no relatório.
+3. Em quantos projetos cada funcionário está alocado? Todos os funcionários devem ser listados.
+4. Relacionar o nome dos funcionários e em quais projetos eles estão alocados. Devem ser exibidos todos os funcionários e todos os projetos.
+5. Qual a quantidade horas dedicadas em cada projeto ordenadas da maior pra menor quantidade?
+6. Quais departamentos não possuem funcionários lotados?
+7. Quais os projetos que não possuem funcionários alocados?
+
+SELECT * from departamento;
+SELECT * from funcionario;
+SELECT * from projeto;
+SELECT * from func_proj;
+
+-- 01 
+SELECT funcionario.nome as 'Funcionário', departamento.nome as 'Departamento'
+from funcionario join departamento
+on cod_depart = codigo;
+
+-- 02
+SELECT departamento.nome as 'Departamento',
+COUNT(funcionario.matricula) as 'Quant. Func.',
+SUM(funcionario.salario) as 'Custo salarial por departamento'
+from funcionario
+left join departamento on cod_depart = codigo
+GROUP by departamento.nome;
+
+-- 03
+SELECT funcionario.nome as 'Funcionário', 
+count(func_proj.mat_func) as 'Quant. projetos'
+from funcionario left join func_proj
+on funcionario.matricula = func_proj.mat_func
+GROUP by funcionario.nome;
+
+-- 04
+SELECT funcionario.nome as 'Funcionário',
+projeto.nome as 'Projeto'
+from funcionario left join func_proj
+on funcionario.matricula = func_proj.mat_func
+left join projeto on func_proj.id_proj = projeto.id
+
+UNION
+
+SELECT funcionario.nome as 'Funcionário',
+projeto.nome as 'Projeto'
+from projeto left join func_proj
+on func_proj.id_proj = projeto.id
+left join funcionario on funcionario.matricula = func_proj.mat_func;
+
+-- 05
+SELECT projeto.nome,
+COALESCE(sum(func_proj.qtde_horas), 0) as 'Horas totais'
+from projeto left join func_proj
+on projeto.id = func_proj.id_proj
+GROUP by projeto.nome
+order by sum(func_proj.qtde_horas) desc;
+
+-- 06
+SELECT departamento.nome from departamento
+left JOIN funcionario on departamento.codigo = funcionario.cod_depart
+WHERE funcionario.cod_depart is null ;
+
+-- 07
+SELECT projeto.nome from projeto
+left join func_proj on func_proj.id_proj = projeto.id
+where func_proj.id_proj is null;
+
+
+
