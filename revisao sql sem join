@@ -12,75 +12,67 @@
 -- Listar os nomes, a carga horária, o dia da semana e o turno em que cada disciplina ocorre, ordenados pelo turno e depois pelo nome da disciplina.
 -- O relatório deve ser exibido com os seguintes títulos: DISCIPLINA, CARGA HORÁRIA, DIA e TURNO.
 
-SELECT * from professor;
-SELECT * from curso;
-SELECT * from sala;
-SELECT * from disciplina;
+select * from professor;
+select * from curso;
+select * from disciplina;
+select * from sala;
 
 -- 01
-select disciplina.nome from disciplina
-join curso on cod_curso = codigo
-where nivel != "Técnico" and ch < 50;
-
+SELECT nome from disciplina where cod_curso in (
+SELECT codigo from curso where nivel != 'Técnico') and ch < 50;
 
 -- 02
-SELECT avg(DISTINCT professor.salario) as 'Média salarial dos coordenadores' 
-from professor
-join curso on mat_coordenador = matricula
-WHERE mat_coordenador is not null;
+SELECT avg(DISTINCT salario) from professor where matricula in (
+SELECT mat_coordenador from curso where mat_coordenador is not null);
 
 -- 03
-SELECT disciplina.nome from disciplina
-WHERE dia_semana != 'terça-feira' 
-ORDER by CH desc
-LIMIT 2;
+SELECT nome from disciplina where dia_semana != 'terça-feira'
+order by ch desc LIMIT 2;
 
 -- 04
-SELECT disciplina.nome, curso.nome, disciplina.qtde_matriculados
+SELECT disciplina.nome as 'Disciplina',
+curso.nome as 'Curso',
+disciplina.qtde_matriculados as 'Qtde matriculados'
 from disciplina, curso
-WHERE cod_curso in (SELECT codigo from curso)
-ORDER by qtde_matriculados;
+where disciplina.cod_curso = curso.codigo
+order by qtde_matriculados;
 
 -- 05
 SELECT nome from curso
-WHERE vagas_porAno BETWEEN 30 and 50
-and nivel in ('Superior','Pós-graduação');
+where vagas_porAno/2 BETWEEN 30 and 50 and nivel in ('Superior', 'Pós-Graduação');
 
 -- 06
-SELECT disciplina.nome from disciplina
-WHERE num_sala in
-(SELECT numero from sala 
-WHERE descricao like 'Sala de aula%') 
-and dia_semana = 'segunda-feira';
-
+SELECT nome from disciplina, sala where dia_semana = 'segunda-feira' 
+and disciplina.num_sala = sala.numero and sala.descricao LIKE 'Sala de aula%';
+                            
 -- 07
-SELECT sala.descricao, sala.capacidade
-from sala WHERE numero not in (
-SELECT num_sala from disciplina WHERE num_sala is not null);
+SELECT sala.descricao, sala.capacidade from sala
+WHERE sala.numero not in (select num_sala from disciplina where num_sala is not null);
 
 -- 08
-SELECT DISTINCT professor.nome, professor.formação 
-from professor
-join curso on mat_coordenador = matricula;
+SELECT DISTINCT formação from professor
+where matricula in (
+select mat_coordenador from curso where mat_coordenador is not null);
 
 -- 09
-SELECT sala.descricao, count(disciplina.nome), disciplina.turno
-from sala, disciplina where sala.numero = disciplina.num_sala
-GROUP by sala.descricao, disciplina.turno;
+SELECT sala.descricao, count(disciplina.nome), disciplina.turno from sala, disciplina
+where sala.numero = disciplina.num_sala
+GROUP by disciplina.nome, disciplina.turno;
 
 -- 10
-SELECT DISTINCT professor.nome
-from professor
-WHERE professor.matricula in (SELECT mat_coordenador from curso
-where mat_coordenador IS not null)
-and professor.matricula NOT IN (SELECT mat_professor from disciplina 
-WHERE mat_professor is not null);
+SELECT distinct professor.nome from professor, curso
+where professor.matricula in 
+(select mat_coordenador from curso where mat_coordenador is not null)
+and professor.matricula not in 
+(SELECT mat_professor from disciplina where mat_professor is not null);
 
 -- 11
 SELECT nome as 'DISCIPLINA',
-CH as 'CARGA HORÁRIA',
+ch AS 'CARGA HORÁRIA',
 dia_semana AS 'DIA',
-turno AS 'TURNO'
+turno AS 'TURNO' 
 from disciplina
-ORDER BY turno, nome;
+order by turno, nome;
+
+
 
