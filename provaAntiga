@@ -1,0 +1,62 @@
+SELECT * from professor;
+SELECT * from disciplina;
+SELECT * from curso;
+SELECT * from sala;
+
+-- 01
+SELECT curso.nome, disciplina.nome
+from disciplina join curso
+on disciplina.cod_curso = curso.codigo
+where curso.nivel = 'Técnico';
+
+-- 02
+SELECT disciplina.nome, professor.nome
+from disciplina left join professor
+on disciplina.mat_professor = professor.matricula
+where disciplina.dia_semana = 'segunda-feira'
+
+-- 03
+SELECT descricao, capacidade from sala
+where capacidade >= 40 and numero not in (
+SELECT num_sala from disciplina where dia_semana = 'quarta-feira' 
+and turno = 'T' and num_sala is not null);
+
+-- 04
+SELECT COUNT(disciplina.nome) 
+from disciplina join professor
+on disciplina.mat_professor = professor.matricula
+where professor.formação = 'Ciências da Computação'
+
+-- 05
+SELECT curso.nome as 'Curso',
+COALESCE(professor.nome, 'Sem coordenador') as 'Coordenador'
+from curso left join professor
+on curso.mat_coordenador = professor.matricula;
+
+-- 06
+SELECT sala.descricao, disciplina.dia_semana, disciplina.turno
+from sala join disciplina
+on sala.numero = disciplina.num_sala
+ORDER by sala.descricao, disciplina.dia_semana, disciplina.turno;
+
+-- 07
+SELECT professor.nome as 'PROFESSOR', 
+COUNT(disciplina.mat_professor) AS 'QTDE. DISCIPLINAS', 
+sum(disciplina.qtde_matriculados) AS 'QTDE. MATRICULADOS'
+From professor join disciplina
+on professor.matricula = disciplina.mat_professor
+GROUP by professor.nome;
+
+-- 08
+SELECT disciplina.nome, disciplina.turno, sala.descricao
+from disciplina left join sala
+on disciplina.num_sala = sala.numero
+order by sala.descricao, disciplina.turno, disciplina.nome;
+
+-- 09
+SELECT sala.numero, disciplina.dia_semana, disciplina.turno
+from sala join disciplina
+on sala.numero = disciplina.num_sala
+GROUP BY sala.numero, disciplina.dia_semana, disciplina.turno
+HAVING COUNT(*) >= 2
+
