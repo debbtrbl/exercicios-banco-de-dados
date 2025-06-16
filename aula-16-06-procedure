@@ -1,0 +1,33 @@
+-- retornar o produto mais caro de um fornecedor
+CREATE FUNCTION maior_preco(nome_forn VARCHAR(30)) 
+RETURNS DECIMAL(8, 2)
+LANGUAGE plpgsql AS $$
+DECLARE
+     retorno DECIMAL(8, 2);
+BEGIN
+     SELECT preço into retorno from vw_dayvison WHERE nome_fornecedor = nome_forn;
+     RETURN retorno;
+END; $$
+
+SELECT maior_preco('Apple');
+
+
+-- retornar o produto mais caro de um fornecedor, se n existir o fornecedor exibir mensagem de erro
+CREATE  or REPLACE FUNCTION maior_preco2(nome_forn VARCHAR(30)) 
+RETURNS DECIMAL(8, 2)
+LANGUAGE plpgsql AS $$
+DECLARE
+     retorno DECIMAL(8, 2);
+BEGIN
+	SELECT preço into retorno from vw_dayvison WHERE nome_fornecedor = nome_forn;
+    
+     if retorno is not null then
+     RETURN retorno;
+    
+     ELSE
+     	raise EXCEPTION 'Fornecedor inexistente!!!!';
+     end if;
+END; $$
+
+
+SELECT maior_preco2('Tim');
