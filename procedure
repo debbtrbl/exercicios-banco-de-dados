@@ -1,0 +1,71 @@
+CREATE TABLE setor(
+  cod_setor integer primary key,
+  nome_setor varchar (30) );
+CREATE TABLE produto(
+  cod_produto integer primary key,
+  nome_produto varchar(30),
+  preço decimal (8,2),
+  categoria varchar(30),
+  cd_setor integer,
+  foreign key (cd_setor) references setor (cod_setor) );
+
+INSERT INTO setor values
+(1,'Higiene'), (2, 'Eletrônicos'),(3,'Alimentação'), (4, 'Vestuário');
+INSERT INTO produto values(1, 'escova de dente', 7.87,null, 1),(2, 'Carro', 42162.98,'SUV', null),(3, 'papel higiênico', 12.34, 'Higiente pessoal',1),(4, 'iPad', 5182.42, 'Tablet',2),(5, 'iPhone', 8182.42, 'Celular',2),(6, 'Café', 6.98, null,3);
+
+CREATE TABLE fornecedor (
+  cod_fornecedor integer primary key,
+  nome_fornecedor varchar(30),  
+  cidade varchar(30) );
+CREATE TABLE forn_Prod(
+  cd_fornecedor integer,
+  cd_produto integer,
+  primary key (cd_fornecedor,cd_produto),
+  foreign key (cd_fornecedor) references fornecedor (cod_fornecedor),
+  foreign key (cd_produto) references produto (cod_produto) );
+
+INSERT INTO fornecedor values (1,'Unilever','São Paulo'),(2,'Fiat','Goiana'),(3,'Apple','Nova Iorque'), (4,'Hyundai','Rio de Janeiro'), (5,'São Braz','Recife'), (6,'Sadia','Miranda');
+INSERT INTO forn_prod VALUES (2,2),(4,2),(3,4),(3,5),(1,1),(1,3),(1,6),(5,6);
+
+SELECT * from fornecedor;
+SELECT * from forn_prod;
+SELECT * from produto;
+SELECT * from setor;
+
+-- criar um procediemento q dado um setor retorna o produto mais caro (nome e preço)
+
+CREATE type prod_mais_caro as (n_prod varchar(30), p_produto decimal(8,2));
+CREATE or REPLACE FUNCTION maior_preco (nome_s varchar(30))
+RETURNS prod_mais_caro
+LANGUAGE plpgsql AS $$
+DECLARE
+     retorno prod_mais_caro;
+BEGIN
+    select INTO retorno produto.nome_produto, produto.preço 
+    FROM produto join setor
+    on produto.cd_setor = setor.cod_setor
+    WHERE nome_setor = nome_s
+    ORDER by produto.preço desc
+    limit 1;
+    return retorno;
+END; $$
+
+SELECT * from maior_preco('Higiene');
+SELECT * from maior_preco('Alimentação');
+SELECT * from maior_preco('Eletrônicos');
+
+-- criar um procediemento q dado um setor retorna a lista de produtos (nome e preço)
+CREATE or REPLACE FUNCTION lista_produtos (nome_s varchar(30))
+RETURNS table (n_prod varchar(30), p_produto decimal(8,2))
+LANGUAGE plpgsql AS $$
+BEGIN
+	RETURN QUERY
+    select produto.nome_produto, produto.preço 
+    FROM produto join setor
+    on produto.cd_setor = setor.cod_setor
+    WHERE nome_setor = nome_s;
+END; $$
+
+SELECT * from lista_produtos('Higiene');
+    
+    
