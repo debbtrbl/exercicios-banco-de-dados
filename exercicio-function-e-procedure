@@ -1,0 +1,164 @@
+1. Criar a estrutura altera_nome_produto para atualizar o nome de produto com um determinado código.
+- Deve receber como parâmetros o novo nome e o código do produto a ter seu nome alterado;
+2. Altere o nome do produto de código 2 para ‘Creta’;
+3. Delete a estrutura altera_nome_produto
+4. Criar a estrutura insere_relação que recebe dois inteiros, referentes aos códigos de um
+produto e de um fornecedor. Deve-se inserir essa dupla na tabela forn_prod e retornar
+uma string de sucesso, mas antes deve verificar a existência dos código passados
+realmente existem ou se a dupla já tem relação; nesses últimos casos, não deve realizar a
+inserção e deve retornar uma string contendo a descrição do erro.
+5. Criar a estrutura cadastro_completo que receba informações de um produto (nome, preço e categoria) 
+além do nome do setor ao qual pertence e do fornecedor que oferece esse produto. O procedimento deve cadastrar todas essas informações.
+6. Execute cadastro_completo para inserir um novo produto.
+7. Crie uma estrutura que receba 1 argumento inteiro e que verifica (retorna True ou False) se é maior ou igual a 18;
+8. Crie uma estrutura que receba 2 argumentos (um nome e uma idade) e identifica se a pessoa é de maior ou de menor.
+- Deve usar/chamar a estrutura criada no item 7.
+
+CREATE TABLE setor(
+cod_setor integer primary key,
+nome_setor varchar (30) );
+CREATE TABLE produto(
+cod_produto integer primary key,
+nome_produto varchar(30),
+preço decimal (8,2),
+categoria varchar(30),
+cd_setor integer,
+foreign key (cd_setor) references setor
+(cod_setor) );
+INSERT INTO setor values
+(1,'Higiene'), (2, 'Eletrônicos'),(3,'Alimentação'),
+(4, 'Vestuário');
+INSERT INTO produto values(1, 'escova de
+dente', 7.87,null, 1),(2, 'Carro', 42162.98,'SUV',
+null),(3, 'papel higiênico', 12.34, 'Higiente
+pessoal',1),(4, 'iPad', 5182.42, 'Tablet',2),(5,
+'iPhone', 8182.42, 'Celular',2),(6, 'Café', 6.98,
+null,3);
+CREATE TABLE fornecedor (
+cod_fornecedor integer primary key,
+nome_fornecedor varchar(30),
+cidade varchar(30) );
+CREATE TABLE forn_Prod(
+cd_fornecedor integer,
+cd_produto integer,
+primary key (cd_fornecedor,cd_produto),
+foreign key (cd_fornecedor) references fornecedor
+(cod_fornecedor),
+foreign key (cd_produto) references produto
+(cod_produto) );
+INSERT INTO fornecedor values (1,'Unilever','São
+Paulo'),(2,'Fiat','Goiana'),(3,'Apple','Nova Iorque'),
+(4,'Hyundai','Rio de Janeiro'), (5,'São Braz','Recife'),
+(6,'Sadia','Miranda');
+INSERT INTO forn_prod VALUES
+(2,2),(4,2),(3,4),(3,5),(1,1),(1,3),(1,6),(5,6);
+
+SELECT * from setor;
+SELECT * from produto;
+SELECT * from fornecedor;
+SELECT * from forn_prod;
+
+-- 01
+CREATE OR REPLACE PROCEDURE altera_nome_produto(nome_novo VARCHAR, codigo_produto INTEGER)
+LANGUAGE plpgsql AS $$
+BEGIN
+	UPDATE produto set nome_produto = nome_novo WHERE cod_produto = codigo_produto;
+END; $$
+
+-- 02
+CALL altera_nome_produto('Creta', 2);
+
+-- 03
+drop PROCEDURE altera_nome_produto;
+
+-- 04
+CREATE OR REPLACE FUNCTION insere_relacao (prod INTEGER, forn INTEGER)
+RETURNS VARCHAR(100)
+LANGUAGE plpgsql AS $$
+DECLARE
+	retorno VARCHAR(100);
+BEGIN
+	if prod in (SELECT cod_produto from produto) 
+    AND forn in (SELECT cod_fornecedor from fornecedor) 
+    and not EXISTS (SELECT 1 from forn_prod 
+                    WHERE forn_prod.cd_produto = prod 
+                    and forn_prod.cd_fornecedor = forn)
+     then insert into forn_prod values (forn, prod);
+     retorno := 'Relação inserida com sucesso!';
+     ELSE
+     retorno := 'Fornecedor ou produto não existe ou já possuem relacão!';
+     end if;
+     return retorno;
+END; $$
+
+SELECT insere_relacao(5, 1);  
+SELECT insere_relacao(5, 1); 
+SELECT insere_relacao(999, 1);
+
+-- 05
+ALTER TABLE produto 
+ALTER COLUMN cod_produto ADD GENERATED ALWAYS AS IDENTITY;
+ 
+CREATE OR REPLACE PROCEDURE cadastro_completo(nome VARCHAR, preco DECIMAL, categ VARCHAR, n_setor VARCHAR, forn VARCHAR)
+LANGUAGE plpgsql AS $$
+DECLARE
+	codigo_setor INTEGER;
+    codigo_forn INTEGER;
+    codigo_produto INTEGER;
+BEGIN
+	codigo_setor := (SELECT cod_setor from setor where nome_setor = n_setor);
+    codigo_forn := (SELECT cod_fornecedor from fornecedor where nome_fornecedor = forn);
+    
+    IF codigo_setor IS NOT NULL 
+	AND codigo_forn IS NOT NULL 
+    and not EXISTS (select 1 from produto where nome_produto = nome)
+    then INSERT into produto(nome_produto, preço, categoria, cd_setor) values (nome, preco, categ, codigo_setor)
+    RETURNING cod_produto INTO codigo_produto;
+    PERFORM insere_relacao(codigo_forn, codigo_produto);
+    ELSE
+    RAISE EXCEPTION 'Não foi possível cadastrar produto! Setor ou fornecedor inválido ou produto já existe!';
+    end if;
+END; $$
+
+-- 06
+SELECT setval(
+    pg_get_serial_sequence('produto', 'cod_produto'),
+    (SELECT MAX(cod_produto) FROM produto)
+);
+
+CALL cadastro_completo('Shampoo', 12.78, 'Higiente Pessoal', 'Higiene', 'Unilever');
+
+-- 07
+CREATE OR REPLACE FUNCTION maior_dezoito(idade INTEGER)
+RETURNs BOOLEAN
+LANGUAGE plpgsql AS $$
+DECLARE
+	retorno BOOLEAN;
+BEGIN
+	if idade >= 18 
+    then retorno := TRUE;
+    ELSE
+    retorno := FALSE;
+    end if;
+    RETURN retorno;
+END; $$
+
+SELECT maior_dezoito(14);
+
+-- 08
+CREATE OR REPLACE FUNCTION maior_de_idade(nome VARCHAR, idade INTEGER)
+RETURNs VARCHAR(20)
+LANGUAGE plpgsql AS $$
+DECLARE
+	retorno VARCHAR(20);
+BEGIN
+	if maior_dezoito(idade) = TRUE
+    then retorno := 'Maior de idade';
+    ELSE
+    retorno := 'Menor de idade';
+    end if;
+    RETURN retorno;
+END; $$
+
+SELECT maior_de_idade('deb', 21);
+SELECT maior_de_idade('davi', 17);
