@@ -1,0 +1,126 @@
+-- 01. Criar um relatório que mostre os nomes das músicas e dos seus criadores (nomes dos artistas) que não fazem parte de um album,
+ou seja, músicas criadas mas que não fazem parte de um álbum ainda. 
+-- 02. Criar um relatório que retorne o título dos álbuns e a quantidade de músicas que estão cadastradas em cada um.
+--03. Criar uma estrutura que insere uma música recebendo o título, a duração e o nome do artista. O procedimento deve verificar se 
+o artista já existe, caso não exista deve inserir ele antes. O procedimento deve gerar os códigos das tabelas, preencher nulo em país
+e salário na tabela artista e 2020 em ano_composicao na tabela musica.
+-- 04. Criar uma estrutura que retorna os nomes dos artistas e a quantidade de músicas deles que fazem parte de um álbum, a partir do
+nome do álbum. Caso o álbum não exista, deve levantar uma exceção.
+
+REGRA DO NEGÓCIO: Uma regra desse negócio é que um álbum só pode ser lançado com pelo menos 5 músicas associadas. A coluna que indica se
+o álbum já pode ser lançado é o booleano pode_lancar, já a data de lançamento é colocada na coluna dt_lancamento. 
+
+-- 05. Criar uma trigger que atualiza a coluna pode_lancar para true quando a quantidade mínima de músicas de um álbum é atingida.
+-- 06. Criar uma trigger que não permite marcar o lançamento de um álbum (preenchimento da coluna dt_lancamento em album com valor 
+diferente de null) sem o album estar apto para ser lançado (pode_lancar deve estar em true).
+
+SELECT * from album;
+SELECT * from artista;
+SELECT * from faz_parte;
+SELECT * from musica;
+
+-- 01
+CREATE view musicasSemAlbum as
+SELECT musica.título, artista.nome_artista
+from musica left join artista
+on musica.cod_artista = artista.codigo
+where musica.codigo not in (SELECT cod_musica from faz_parte);
+
+SELECT * FROM musicassemalbum;
+
+-- 02
+CREATE view qtdeMscAlbum as
+SELECT album.nome, count(cod_musica)
+from album join faz_parte
+on cod_album = album.codigo
+GROUP by album.nome;
+
+SELECT * from qtdemscalbum;
+
+-- 03
+CREATE OR REPLACE FUNCTION insereMsc (nome_msc varchar(40), duracao_msc INTEGER, nome_art VARCHAR(30))
+RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+    cod_art INTEGER;
+BEGIN
+    if nome_art not in (SELECT nome_artista from artista) THEN
+		INSERT into artista VALUES
+                   ((SELECT max(codigo) + 1 from artista), nome_art,null,null);
+        SELECT codigo into cod_art FROM artista WHERE artista.nome_artista = nome_art;
+        INSERT into musica VALUEs ((SELECT max(codigo) + 1 from musica), nome_msc, 2020, cod_art);
+    ELSE
+       SELECT codigo into cod_art FROM artista WHERE artista.nome_artista = nome_art;
+        INSERT into musica VALUEs ((SELECT max(codigo) + 1 from musica), nome_msc, 2020, cod_art);
+     end if;                               
+END; $$
+
+SELECT insereMsc('menina má', 140, 'anitta');
+
+-- 04
+CREATE OR REPLACE FUNCTION art_msc_alb(nome_alb VARCHAR(40))
+RETURNS TABLE (nome_artistas VARCHAR(30), qtdeMsc BIGINT)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM album WHERE nome = nome_alb) THEN
+        RAISE EXCEPTION 'Álbum não existe!';
+    END IF;
+    RETURN QUERY
+    SELECT a.nome_artista, COUNT(f.cod_musica)
+    FROM artista a
+    JOIN musica m ON a.codigo = m.cod_artista
+    JOIN faz_parte f ON m.codigo = f.cod_musica
+    JOIN album al ON f.cod_album = al.codigo
+    WHERE al.nome = nome_alb
+    GROUP BY a.nome_artista;
+END;
+$$;
+
+SELECT * from art_msc_alb('Romântico Brasileiro');
+
+-- 05
+CREATE or replace FUNCTION verificar_qtdeMusicas ()
+RETURNS TRIGGER
+LANGUAGE PLPGSQL AS $$
+DECLARE
+    qtde_musicas BIGINT;
+BEGIN
+    select count(cod_musica) from faz_parte where cod_album=NEW.cod_album
+        into qtde_musicas;
+    if  qtde_musicas >=5 THEN
+        update album set pode_lancar=true where codigo= NEW.cod_album;
+    end if;
+    return NEW;
+END; $$
+
+CREATE TRIGGER tg_ver_pode_lancar
+AFTER INSERT ON faz_parte
+FOR EACH ROW
+EXECUTE PROCEDURE verificar_qtdeMusicas ( );
+
+-- 06
+CREATE or replace FUNCTION verificar_preenchimento ()
+RETURNS TRIGGER
+LANGUAGE PLPGSQL AS $$
+BEGIN
+    if new.dt_lancamento is not null and new.pode_lancar = false THEN
+        raise EXCEPTION 'Você não pode marcar o lançamento desse álbum';
+    end if;
+    return NEW;
+END; $$
+
+CREATE TRIGGER tg_ver_pode_lancar
+before INSERT or update ON album
+FOR EACH ROW
+EXECUTE PROCEDURE verificar_preenchimento ();
+
+
+
+
+
+
+
+
+
+
+
